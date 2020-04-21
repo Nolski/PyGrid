@@ -7,6 +7,7 @@ from ..exceptions import PlanNotFoundError, PlanTranslationError, PlanInvalidErr
 
 # Syft dependencies
 import syft as sy
+from syft.execution.translation.tfjs import PlanTranslatorTfjs
 from syft.execution.translation.torchscript import PlanTranslatorTorchscript
 from syft.execution.translation.default import PlanTranslatorDefault
 from syft.serde import protobuf
@@ -32,13 +33,16 @@ class PlanManager:
                 try:
                     plan_ops = self.trim_plan(plan, "default")
                     plan_ts = self.trim_plan(plan, "torchscript")
+                    plan_tfjs = self.trim_plan(plan, "tfjs")
                     plan_ops_ser = self.serialize_plan(plan_ops)
                     plan_ts_ser = self.serialize_plan(plan_ts)
+                    plan_tfjs_ser = self.serialize_plan(plan_tfjs)
                 except:
                     raise PlanTranslationError()
                 plans_converted[idx] = {
                     "list": plan_ops_ser,
                     "torchscript": plan_ts_ser,
+                    "tfjs": plan_tfjs_ser,
                 }
 
             # Register new Plans into the database
@@ -47,6 +51,7 @@ class PlanManager:
                     name=key,
                     value=plan["list"],
                     value_ts=plan["torchscript"],
+                    value_tfjs=plan["tfjs"],
                     plan_flprocess=process,
                 )
         else:
@@ -111,6 +116,7 @@ class PlanManager:
     def trim_plan(plan: "sy.Plan", variant: str) -> "sy.Plan":
         """Trim Plan to specified variant"""
         translators = {
+            "tfjs": PlanTranslatorTfjs,
             "torchscript": PlanTranslatorTorchscript,
             "default": PlanTranslatorDefault,
         }
